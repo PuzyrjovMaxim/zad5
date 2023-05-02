@@ -31,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 ?>
 
 <form action="" method="post">
-  <input name="login" />
-  <input name="pass" />
+  <input name="login" /> Логин<br>
+  <input name="pass" type="password" />Пароль<br>
   <input type="submit" value="Войти" />
 </form>
 
@@ -44,10 +44,39 @@ else {
   // TODO: Проверть есть ли такой логин и пароль в базе данных.
   // Выдать сообщение об ошибках.
 
+  $login=$_POST['login'];
+  $passw=$_POST['pass'];
+  $uid=0;
+  $error=TRUE;
+  $user = 'u47770';
+  $pass = '445614';
+  $db0 = new PDO('mysql:host=localhost;dbname=u47770', $user, $pass, array(PDO::ATTR_PERSISTENT => true));
+  if(!empty($login) and !empty($passw)){
+    try{
+      $c=$db0->prepare("SELECT * FROM user WHERE login=?");
+      $c->bindParam(1,$login);
+      $c->execute();
+      $username=$c->fetchALL();
+	    print($username[0]['password']);
+      if(password_verify($passw,$username[0]['password'])){
+        $uid=$username[0]['id'];
+        $error=FALSE;
+      }
+    }
+    catch(PDOException $e){
+      print('Error : ' . $e->getMessage());
+      exit();
+    }
+  }
+  if($error==TRUE){
+    print('Неправильный логин или пароль <br> Создайте новую <a href="index.php"> учетную запись</a> или <a href="login.php">заново введите данные</a> ');
+    session_destroy();
+    exit();
+  }
   // Если все ок, то авторизуем пользователя.
   $_SESSION['login'] = $_POST['login'];
   // Записываем ID пользователя.
-  $_SESSION['uid'] = 123;
+  $_SESSION['uid'] = $uid;
 
   // Делаем перенаправление.
   header('Location: ./');
