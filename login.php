@@ -30,7 +30,7 @@ if (!empty($_SESSION['login'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
 ?>
 
-<form action="" method="post">
+<form action="login.php" method="post">
   <input name="login" /> Логин<br>
   <input name="pass" type="password" />Пароль<br>
   <input type="submit" value="Войти" />
