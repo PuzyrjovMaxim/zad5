@@ -44,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
   $errors['limbs'] = !empty($_COOKIE['limbs_error']);
   $errors['ability'] = !empty($_COOKIE['ability_error']);
   $errors['biography'] = !empty($_COOKIE['biography_error']);
+  $errors['check'] = !empty($_COOKIE['check_error']);
   // TODO: аналогично все поля.
 
   // Выдаем сообщения об ошибках.
@@ -95,6 +96,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     // Выводим сообщение.
     $messages[] = '<div class="error">Заполните корректно биографию.</div>';
   }
+  if ($errors['check']) {
+    // Удаляем куку, указывая время устаревания в прошлом.
+    setcookie('check_error', '', 100000);
+    // Выводим сообщение.
+    $messages[] = '<div class="error">Вы должны согласиться с условиями ипользования данных.</div>';
+  }
   // TODO: тут выдать сообщения об ошибках в других полях.
 
   // Складываем предыдущие значения полей в массив, если есть.
@@ -111,6 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
   $values['4'] = empty($_COOKIE['4_value']) ? '' : strip_tags($_COOKIE['4_value']);
   $values['5'] = empty($_COOKIE['5_value']) ? '' : strip_tags($_COOKIE['5_value']);
   $values['biography'] = empty($_COOKIE['biography_value']) ? '' : strip_tags($_COOKIE['biography_value']);
+  $values['check'] = empty($_COOKIE['check_value']) ? '' : strip_tags($_COOKIE['check_value']);
 
   // TODO: аналогично все поля.
 
@@ -163,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     // TODO: загрузить данные пользователя из БД
     // и заполнить переменную $values,
     // предварительно санитизовав.
-    printf('Вход с логином %s, uid %d', $_SESSION['login'], $_SESSION['uid']);
+    printf('Выполнен вход с логином %s, uid %d', $_SESSION['login'], $_SESSION['uid']);
   }
 
   // Включаем содержимое файла form.php.
@@ -177,6 +185,9 @@ else {
   if(!empty($_POST['logout'])){
     session_destroy();
     header('Location: index.php');
+  }
+  if(empty($_SESSION['login'])){
+    $check=$_POST['check'];
   }
   $errors = FALSE;
   if (empty($_POST['name'])) {
@@ -264,6 +275,15 @@ else {
     // Сохраняем ранее введенное в форму значение на месяц.
     setcookie('biography_value', $_POST['biography'], time() + 30 * 24 * 60 * 60);
   }
+  if(empty($_SESSION['login'])) {
+    if(!isset($check)) {
+      setcookie('check_error', '1', time() + 24 * 60 * 60);
+      $errors = TRUE;
+    }
+    else {
+      setcookie('check_value', TRUE, time() + 30 * 24 * 60 * 60);
+    }
+  }
 
 // *************
 // TODO: тут необходимо проверить правильность заполнения всех остальных полей.
@@ -298,9 +318,15 @@ else {
   if (!empty($_COOKIE[session_name()]) &&
       session_start() && !empty($_SESSION['login'])) {
         $id=$_SESSION['uid'];
-        $upd=$db->prepare("INSERT INTO application SET name = ?, email = ?, year = ?, sex = ?, limbs = ?, biography = ? WHERE id =:id ");
-        $stmt -> execute([$_POST['name'], $_POST['email'], $_POST['year'], $_POST['sex'],$_POST['limbs'], $_POST['biography']]);
-
+        $upd=$db->prepare("INSERT INTO application SET name =:name, email =:email, year =:year, sex =:sex, limbs =:limbs, biography =:biography WHERE id =:id ");
+        $cols=array(
+          ':name'=>$POST['name'],
+          ':email'=>$POST['email'],
+          ':year'=>$POST['year'],
+          ':sex'=>$POST['sex'],
+          ':limbs'=>$POST['limbs'],
+          ':biography'=>$POST['biography'],
+        );
         foreach($cols as $k=>&$v){
           $upd->bindParam($k,$v);
         }
@@ -328,8 +354,8 @@ else {
     try {
       $stmt = $db->prepare("INSERT INTO application SET name = ?, email = ?, year = ?, sex = ?, limbs = ?, biography = ?");
       $stmt -> execute([$_POST['name'], $_POST['email'], $_POST['year'], $_POST['sex'],$_POST['limbs'], $_POST['biography']]);
-        
-      $usr = $db->prepare("INSERT INTO user SET uid = ?, login = ?, password = ?");
+      $id=$db->lastInsertId();
+      $usr = $db->prepare("INSERT INTO user SET id = ?, login = ?, password = ?");
       $usr->bindParam(1,$id);
       $usr->bindParam(2,$login);
       $usr->bindParam(3,$passw_hash);
@@ -352,7 +378,9 @@ else {
   }
 
   // Сохраняем куку с признаком успешного сохранения.
-  setcookie('save', '1');
+  if(!$errors) {
+    setcookie('save', '1');
+  }
 
   // Делаем перенаправление.
   header('Location: ./');
