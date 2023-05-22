@@ -17,22 +17,24 @@ session_start();
 
 // В суперглобальном массиве $_SESSION хранятся переменные сессии.
 // Будем сохранять туда логин после успешной авторизации.
-if (!empty($_SESSION['login'])) {
+
   // Если есть логин в сессии, то пользователь уже авторизован.
   // TODO: Сделать выход (окончание сессии вызовом session_destroy()
   //при нажатии на кнопку Выход).
   // Делаем перенаправление на форму.
-  header('Location: ./');
-}
+  
 
 // В суперглобальном массиве $_SERVER PHP сохраняет некторые заголовки запроса HTTP
 // и другие сведения о клиненте и сервере, например метод текущего запроса $_SERVER['REQUEST_METHOD'].
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
+  if (!empty($_SESSION['login'])) {
+    header('Location: index.php');
+  }
 ?>
 
 <form action="login.php" method="post">
   <input name="login" /> Логин<br>
-  <input name="pass" type="password" />Пароль<br>
+  <input name="password" type="password" />Пароль<br>
   <input type="submit" value="Войти" />
 </form>
 
@@ -45,19 +47,20 @@ else {
   // Выдать сообщение об ошибках.
 
   $login=$_POST['login'];
-  $passw=$_POST['pass'];
+  $passw=$_POST['password'];
   $uid=0;
   $error=TRUE;
   $user = 'u47770';
   $pass = '445614';
-  $db0 = new PDO('mysql:host=localhost;dbname=u47770', $user, $pass, array(PDO::ATTR_PERSISTENT => true));
+  $db1 = new PDO('mysql:host=localhost;dbname=u47770', $user, $pass, array(PDO::ATTR_PERSISTENT => true));
   if(!empty($login) and !empty($passw)){
     try{
-      $c=$db0->prepare("SELECT * FROM user WHERE login=?");
+      $c=$db1->prepare("SELECT * FROM user WHERE login=?");
       $c->bindParam(1,$login);
       $c->execute();
       $username=$c->fetchALL();
 	    print($username[0]['password']);
+      echo $username;
       if(password_verify($passw,$username[0]['password'])){
         $uid=$username[0]['id'];
         $error=FALSE;
@@ -74,10 +77,10 @@ else {
     exit();
   }
   // Если все ок, то авторизуем пользователя.
-  $_SESSION['login'] = $_POST['login'];
+  $_SESSION['login'] = $login;
   // Записываем ID пользователя.
   $_SESSION['uid'] = $uid;
 
   // Делаем перенаправление.
-  header('Location: ./');
+  header('Location: index.php');
 }
