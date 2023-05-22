@@ -21,15 +21,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     // Удаляем куку, указывая время устаревания в прошлом.
     setcookie('save', '', 100000);
     setcookie('login', '', 100000);
-    setcookie('pass', '', 100000);
+    setcookie('password', '', 100000);
     // Выводим сообщение пользователю.
     $messages[] = 'Спасибо, результаты сохранены.';
     // Если в куках есть пароль, то выводим сообщение.
-    if (!empty($_COOKIE['pass'])) {
+    if (!empty($_COOKIE['password'])) {
       $messages[] = sprintf('Вы можете <a href="login.php">войти</a> с логином <strong>%s</strong>
         и паролем <strong>%s</strong> для изменения данных.',
         strip_tags($_COOKIE['login']),
-        strip_tags($_COOKIE['pass']));
+        strip_tags($_COOKIE['password']));
     }
   }
 
@@ -135,12 +135,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
           $get->bindParam(1,$_SESSION['uid']);
           $get->execute();
           $info=$get->fetchALL();
-          $values['name']=$inf[0]['name'];
-          $values['email']=$inf[0]['email'];
-          $values['year']=$inf[0]['year'];
-          $values['sex']=$inf[0]['sex'];
-          $values['limbs']=$inf[0]['limbs'];
-          $values['biography']=$inf[0]['biography'];
+          $values['name']=$info[0]['name'];
+          $values['email']=$info[0]['email'];
+          $values['year']=$info[0]['year'];
+          $values['sex']=$info[0]['sex'];
+          $values['limbs']=$info[0]['limbs'];
+          $values['biography']=$info[0]['biography'];
         
           $get2=$db->prepare("SELECT ability FROM application_ability WHERE application_id=?");
           $get2->bindParam(1,$_SESSION['uid']);
@@ -306,6 +306,7 @@ else {
     setcookie('limbs_error', '', 100000);
     setcookie('ability_error', '', 100000);
     setcookie('biography_error', '', 100000);
+    setcookie('check_error', '', 100000);
     // TODO: тут необходимо удалить остальные Cookies.
   }
 
@@ -318,7 +319,7 @@ else {
   if (!empty($_COOKIE[session_name()]) &&
       session_start() && !empty($_SESSION['login'])) {
         $id=$_SESSION['uid'];
-        $upd=$db->prepare("INSERT INTO application SET name =:name, email =:email, year =:year, sex =:sex, limbs =:limbs, biography =:biography WHERE id =:id ");
+        $upd=$db->prepare("UPDATE application SET name =:name, email =:email, year =:year, sex =:sex, limbs =:limbs, biography =:biography WHERE id =:id ");
         $cols=array(
           ':name'=>$POST['name'],
           ':email'=>$POST['email'],
@@ -350,7 +351,7 @@ else {
     $passw = substr(md5(uniqid().uniqid()),rand(0, 5),10);
     $passw_hash = password_hash($passw,PASSWORD_DEFAULT);
     setcookie('login', $login);
-    setcookie('pass', $pass);
+    setcookie('password', $passw);
     try {
       $stmt = $db->prepare("INSERT INTO application SET name = ?, email = ?, year = ?, sex = ?, limbs = ?, biography = ?");
       $stmt -> execute([$_POST['name'], $_POST['email'], $_POST['year'], $_POST['sex'],$_POST['limbs'], $_POST['biography']]);
@@ -363,7 +364,7 @@ else {
 
       $application_id = $db->lastInsertId();
       $application_ability = $db->prepare("INSERT INTO application_ability SET application_id = ?, ability = ?");
-      foreach($_POST["abilities"] as $ability){
+      foreach($_POST["ability"] as $ability){
         $application_ability -> execute([$application_id, $ability]);
         print($ability);
       }
